@@ -1,5 +1,6 @@
 import * as colors from 'kleur/colors';
 import path from 'path';
+import {promises as fs} from 'fs';
 import util from 'util';
 import yargs from 'yargs-parser';
 import {addCommand, rmCommand} from './commands/add-rm';
@@ -75,11 +76,12 @@ export async function cli(args: string[]) {
   // Load the current package manifest
   let pkgManifest: any;
   try {
-    pkgManifest = require(path.join(cwd, 'package.json'));
+    pkgManifest = await fs.readFile(path.join(cwd, 'package.json'), 'utf8');
   } catch (err) {
     logger.error(`package.json not found in directory: ${cwd}. Run \`npm init -y\` to create one.`);
     process.exit(1);
   }
+  pkgManifest = JSON.parse(pkgManifest);
 
   const cmd = cliFlags['_'][2];
   logger.debug(`run command: ${cmd}`);

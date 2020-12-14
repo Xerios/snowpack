@@ -1,18 +1,12 @@
 import type {Postcss} from 'postcss';
 import path from 'path';
-import {readFileSync} from 'fs';
 import {SnowpackConfig} from '../types/snowpack';
-import {appendHtmlToHead, getExt} from '../util';
+import {appendHtmlToHead, getExt, HMR_CLIENT_CODE, HMR_OVERLAY_CODE} from '../util';
 import {logger} from '../logger';
 import {generateSRI} from './import-sri';
 
-const SRI_CLIENT_HMR_SNOWPACK = generateSRI(
-  readFileSync(path.join(__dirname, '../../assets/hmr-client.js')),
-);
-
-const SRI_ERROR_HMR_SNOWPACK = generateSRI(
-  readFileSync(path.join(__dirname, '../../assets/hmr-error-overlay.js')),
-);
+const SRI_CLIENT_HMR_SNOWPACK = generateSRI(Buffer.from(HMR_CLIENT_CODE));
+const SRI_ERROR_HMR_SNOWPACK = generateSRI(Buffer.from(HMR_OVERLAY_CODE));
 
 const importMetaRegex = /import\s*\.\s*meta/;
 

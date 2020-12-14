@@ -23,33 +23,25 @@
   "scripts": {
     "build": "tsc --noUnusedLocals false --noUnusedParameters false",
     "build:watch": "tsc --watch --noUnusedLocals false --noUnusedParameters false",
+    "bundle": "rollup -c ./scripts/bundle.js",
     "lint": "tsc --noEmit && package-check"
   },
   "engines": {
     "node": ">=10.19.0"
   },
-  "types": "lib/index.d.ts",
-  "main": "lib/index.js",
-  "exports": {
-    ".": {
-      "import": "./index.esm.mjs",
-      "require": "./lib/index.js"
-    },
-    "./package.json": "./package.json"
-  },
+  "types": "./lib/index.d.ts",
+  "main": "./index.bundle.js",
   "bin": {
-    "sp": "index.bin.js",
-    "snowpack": "index.bin.js"
+    "sp": "./index.bin.js",
+    "snowpack": "./index.bin.js"
   },
   "files": [
     "assets",
     "lib",
     "index.bin.js",
-    "index.esm.mjs"
+    "index.bundle.js"
   ],
-  "dependencies": {
-    "@snowpack/plugin-build-script": "^2.0.12",
-    "@snowpack/plugin-run-script": "^2.2.1",
+  "devDependencies": {
     "@types/cheerio": "0.22.22",
     "cacache": "^15.0.0",
     "cachedir": "^2.3.0",
@@ -88,6 +80,9 @@
     "strip-comments": "^2.0.1",
     "validate-npm-package-name": "^3.0.0",
     "ws": "^7.3.0",
-    "yargs-parser": "^20.0.0"
+    "yargs-parser": "^20.0.0",
+    "bufferutil": "^4.0.2",
+    "utf-8-validate": "^5.0.3",
+    "postcss-es6": "github:postcss/postcss#7.0.32"
   }
 }

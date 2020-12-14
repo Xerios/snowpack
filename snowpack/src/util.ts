@@ -391,10 +391,10 @@ export function removeTrailingSlash(path: string) {
 }
 
 export const HMR_CLIENT_CODE = fs.readFileSync(
-  path.join(__dirname, '../assets/hmr-client.js'),
+  path.resolve(__dirname, '../assets/hmr-client.js'),
   'utf-8',
 );
 export const HMR_OVERLAY_CODE = fs.readFileSync(
-  path.join(__dirname, '../assets/hmr-error-overlay.js'),
+  path.resolve(__dirname, '../assets/hmr-error-overlay.js'),
   'utf-8',
 );
