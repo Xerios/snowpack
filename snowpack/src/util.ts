@@ -19,6 +19,9 @@ import {LockfileManifest, PackageSource, SnowpackConfig} from './types/snowpack'
 
 export const GLOBAL_CACHE_DIR = globalCacheDir('snowpack');
 
+// We need to use eval here to prevent Rollup from detecting this use of `require()`
+export const NATIVE_REQUIRE = eval('require');
+
 // A note on cache naming/versioning: We currently version our global caches
 // with the version of the last breaking change. This allows us to re-use the
 // same cache across versions until something in the data structure changes.
@@ -114,7 +117,7 @@ export function resolveDependencyManifest(dep: string, cwd: string): [string | n
     const depManifest = fs.realpathSync.native(
       require.resolve(`${dep}/package.json`, {paths: [cwd]}),
     );
-    return [depManifest, require(depManifest)];
+    return [depManifest, NATIVE_REQUIRE(depManifest)];
   } catch (err) {
     // if its an export map issue, move on to our manual resolver.
     if (err.code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') {

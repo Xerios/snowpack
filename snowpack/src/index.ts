@@ -98,7 +98,7 @@ export async function cli(args: string[]) {
     process.env.NODE_ENV = process.env.NODE_ENV || 'development';
   }
 
-  const config = loadConfigurationForCLI(cliFlags, pkgManifest);
+  const config = await loadConfigurationForCLI(cliFlags, pkgManifest);
   logger.debug(`config loaded: ${util.format(config)}`);
   const lockfile = await readLockfile(cwd);
   logger.debug(`lockfile ${lockfile ? 'loaded.' : 'not loaded'}`);

@@ -1,5 +1,4 @@
 import fs from 'fs';
-import * as colors from 'kleur/colors';
 import path from 'path';
 import {Plugin} from 'rollup';
 import {VM as VM2} from 'vm2';
@@ -15,43 +14,18 @@ const {parse} = require('cjs-module-lexer');
  * How it works:
  * 1. An array of "install targets" are passed in, describing all known imports + metadata.
  * 2. If isTreeshake: Known imports are marked for tree-shaking by appending 'snowpack-wrap:' to the input value.
- * 3. If autoDetectPackageExports match: Also mark for wrapping, and use automatic export detection.
- * 4. On load, we return a false virtual file for all "snowpack-wrap:" inputs.
+ * 3. On load, we return a false virtual file for all "snowpack-wrap:" inputs.
  *    a. That virtual file contains only `export ... from 'ACTUAL_FILE_PATH';` exports
  *    b. Rollup uses those exports to drive its tree-shaking algorithm.
  *    c. Rollup uses those exports to inform its "namedExports" for Common.js entrypoints.
  */
 export function rollupPluginWrapInstallTargets(
   isTreeshake: boolean,
-  autoDetectPackageExports: string[],
   installTargets: InstallTarget[],
   logger: AbstractLogger,
 ): Plugin {
   const installTargetSummaries: {[loc: string]: InstallTarget} = {};
   const cjsScannedNamedExports = new Map<string, string[]>();
-
-  /**
-   * Runtime analysis: High Fidelity, but not always successful.
-   * `require()` the CJS file inside of Node.js to load the package and detect it's runtime exports.
-   * TODO: Safe to remove now that cjsAutoDetectExportsUntrusted() is getting smarter?
-   */
-  function cjsAutoDetectExportsTrusted(normalizedFileLoc: string): string[] | undefined {
-    try {
-      const mod = require(normalizedFileLoc);
-      // skip analysis for non-object modules, these can only be the default export.
-      if (!mod || mod.constructor !== Object) {
-        return;
-      }
-      // Collect and filter all properties of the object as named exports.
-      return Object.keys(mod).filter((imp) => imp !== 'default' && imp !== '__esModule');
-    } catch (err) {
-      logger.debug(
-        `✘ Runtime CJS auto-detection for ${colors.bold(
-          normalizedFileLoc,
-        )} unsuccessful. Falling back to static analysis. ${err.message}`,
-      );
-    }
-  }
 
   /**
    * Attempt #2: Static analysis: Lower Fidelity, but safe to run on anything.
@@ -134,12 +108,7 @@ export function rollupPluginWrapInstallTargets(
         }, {} as any);
         installTargetSummaries[val] = installTargetSummary;
         const normalizedFileLoc = val.split(path.win32.sep).join(path.posix.sep);
-        const isExplicitAutoDetect = autoDetectPackageExports.some((p) =>
-          normalizedFileLoc.includes(`node_modules/${p}${p.endsWith('.js') ? '' : '/'}`),
-        );
-        const cjsExports = isExplicitAutoDetect
-          ? cjsAutoDetectExportsTrusted(val)
-          : cjsAutoDetectExportsUntrusted(val);
+        const cjsExports = cjsAutoDetectExportsUntrusted(val);
         if (cjsExports && cjsExports.length > 0) {
           cjsScannedNamedExports.set(normalizedFileLoc, cjsExports);
           input[key] = `snowpack-wrap:${val}`;

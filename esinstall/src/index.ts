@@ -57,25 +57,6 @@ type DependencyLoc =
       loc: undefined;
     };
 
-// Add popular CJS packages here that use "synthetic" named imports in their documentation.
-// CJS packages should really only be imported via the default export:
-//   import React from 'react';
-// But, some large projects use named exports in their documentation:
-//   import {useState} from 'react';
-//
-// We use "/index.js here to match the official package, but not any ESM aliase packages
-// that the user may have installed instead (ex: react-esm).
-const CJS_PACKAGES_TO_AUTO_DETECT = [
-  'react/index.js',
-  'react-dom/index.js',
-  'react-dom/server.js',
-  'react-is/index.js',
-  'prop-types/index.js',
-  'scheduler/index.js',
-  'react-table',
-  'chai/index.js',
-];
-
 // Rarely, a package will ship a broken "browser" package.json entrypoint.
 // Ignore the "browser" entrypoint in those packages.
 const BROKEN_BROWSER_ENTRYPOINT = ['@sheerun/mutationobserver-shim'];
@@ -261,7 +242,6 @@ interface InstallOptions {
   externalPackageEsm: string[];
   packageLookupFields: string[];
   packageExportLookupFields: string[];
-  namedExports: string[];
   rollup: {
     context?: string;
     plugins?: RollupPlugin[]; // for simplicity, only Rollup plugins are supported for now
@@ -288,7 +268,6 @@ function setOptionDefaults(_options: PublicInstallOptions): InstallOptions {
     packageLookupFields: [],
     packageExportLookupFields: [],
     env: {},
-    namedExports: [],
     rollup: {
       plugins: [],
       dedupe: [],
@@ -309,7 +288,6 @@ export async function install(
     lockfile,
     logger,
     dest: destLoc,
-    namedExports,
     externalPackage,
     externalPackageEsm,
     sourceMap,
@@ -344,7 +322,6 @@ export async function install(
   const importMap: ImportMap = {imports: {}};
   let dependencyStats: DependencyStatsOutput | null = null;
   const skipFailures = false;
-  const autoDetectNamedExports = [...CJS_PACKAGES_TO_AUTO_DETECT, ...namedExports];
 
   for (const installSpecifier of allInstallSpecifiers) {
     let targetName = getWebDependencyName(installSpecifier);
@@ -436,7 +413,7 @@ ${colors.dim(
         esmExternals: externalPackageEsm,
         requireReturnsDefault: 'auto',
       } as RollupCommonJSOptions),
-      rollupPluginWrapInstallTargets(!!isTreeshake, autoDetectNamedExports, installTargets, logger),
+      rollupPluginWrapInstallTargets(!!isTreeshake, installTargets, logger),
       rollupPluginDependencyStats((info) => (dependencyStats = info)),
       rollupPluginNodeProcessPolyfill(env),
       polyfillNode && rollupPluginNodePolyfills(),

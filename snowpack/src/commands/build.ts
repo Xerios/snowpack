@@ -657,6 +657,7 @@ export async function buildProject(commandOptions: CommandOptions): Promise<Snow
     ignoreInitial: true,
     persistent: true,
     disableGlobbing: false,
+    useFsEvents: true,
   });
   watcher.on('add', (fileLoc) => onWatchEvent(fileLoc));
   watcher.on('change', (fileLoc) => onWatchEvent(fileLoc));

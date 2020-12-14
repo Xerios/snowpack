@@ -23,14 +23,15 @@
   "scripts": {
     "build": "tsc --noUnusedLocals false --noUnusedParameters false",
     "build:watch": "tsc --watch --noUnusedLocals false --noUnusedParameters false",
-    "bundle": "rollup -c ./scripts/bundle.js",
-    "lint": "tsc --noEmit && package-check"
+    "bundle": "webpack -c ./scripts/generate-vendor.js && rollup -c ./scripts/generate-bundle.js",
+    "lint": "tsc --noEmit"
   },
   "engines": {
     "node": ">=10.19.0"
   },
   "types": "./lib/index.d.ts",
-  "main": "./index.bundle.js",
+  "main": "./lib/index.js",
+  "exports": "./lib/index.js",
   "bin": {
     "sp": "./index.bin.js",
     "snowpack": "./index.bin.js"
@@ -41,8 +42,12 @@
     "index.bin.js",
     "index.bundle.js"
   ],
+  "dependencies": {
+    "esbuild": "^0.8.7"
+  },
   "devDependencies": {
     "@types/cheerio": "0.22.22",
+    "bufferutil": "^4.0.2",
     "cacache": "^15.0.0",
     "cachedir": "^2.3.0",
     "cheerio": "^1.0.0-rc.3",
@@ -52,7 +57,6 @@
     "deepmerge": "^4.2.2",
     "detect-port": "^1.3.0",
     "es-module-lexer": "^0.3.24",
-    "esbuild": "^0.8.7",
     "esinstall": "^0.5.1",
     "etag": "^1.8.1",
     "execa": "^4.0.3",
@@ -78,11 +82,11 @@
     "source-map": "^0.7.3",
     "strip-ansi": "^6.0.0",
     "strip-comments": "^2.0.1",
-    "validate-npm-package-name": "^3.0.0",
-    "ws": "^7.3.0",
-    "yargs-parser": "^20.0.0",
-    "bufferutil": "^4.0.2",
     "utf-8-validate": "^5.0.3",
-    "postcss-es6": "github:postcss/postcss#7.0.32"
+    "validate-npm-package-name": "^3.0.0",
+    "webpack": "^5.10.1",
+    "webpack-cli": "^4.2.0",
+    "ws": "^7.3.0",
+    "yargs-parser": "^20.0.0"
   }
 }

@@ -23,7 +23,7 @@ jobs:
         run: |
           yarn --ignore-engines --frozen-lockfile
           yarn build
-        # yarn bundle - add back when normal tests are passing
+          yarn bundle
         env:
           CI: true
       - name: test

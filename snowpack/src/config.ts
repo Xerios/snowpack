@@ -1,9 +1,7 @@
-import {cosmiconfigSync} from 'cosmiconfig';
 import {all as merge} from 'deepmerge';
-import * as esbuild from 'esbuild';
+import {existsSync} from 'fs';
 import {isPlainObject} from 'is-plain-object';
 import {validate, ValidatorResult} from 'jsonschema';
-import os from 'os';
 import path from 'path';
 import {logger} from './logger';
 import {esbuildPlugin} from './plugins/plugin-esbuild';
@@ -17,7 +15,13 @@ import {
   SnowpackPlugin,
   SnowpackUserConfig,
 } from './types/snowpack';
-import {addLeadingSlash, addTrailingSlash, removeLeadingSlash, removeTrailingSlash} from './util';
+import {
+  addLeadingSlash,
+  addTrailingSlash,
+  NATIVE_REQUIRE,
+  removeLeadingSlash,
+  removeTrailingSlash,
+} from './util';
 
 const CONFIG_NAME = 'snowpack';
 const ALWAYS_EXCLUDE = ['**/node_modules/**/*', '**/web_modules/**/*', '**/.types/**/*'];
@@ -250,7 +254,7 @@ function loadPlugins(
 
   function loadPluginFromConfig(name: string, options?: any): SnowpackPlugin {
     const pluginLoc = require.resolve(name, {paths: [process.cwd()]});
-    const pluginRef = require(pluginLoc);
+    const pluginRef = NATIVE_REQUIRE(pluginLoc);
     let plugin: SnowpackPlugin;
     try {
       plugin = typeof pluginRef.default === 'function' ? pluginRef.default : pluginRef;
@@ -543,83 +547,48 @@ export function createConfiguration(
   });
   return [null, normalizeConfig(mergedConfig)];
 }
-
-export function loadConfigurationForCLI(flags: CLIFlags, pkgManifest: any): SnowpackConfig {
-  const explorerSync = cosmiconfigSync(CONFIG_NAME, {
-    // only support these 5 types of config for now
-    searchPlaces: [
-      'package.json',
-      'snowpack.config.cjs',
-      'snowpack.config.js',
-      'snowpack.config.ts',
-      'snowpack.config.json',
-    ],
-    loaders: {
-      '.ts': (configPath) => {
-        const outPath = path.join(os.tmpdir(), '.snowpack.config.cjs');
-
-        try {
-          esbuild.buildSync({
-            entryPoints: [configPath],
-            outfile: outPath,
-            bundle: true,
-            platform: 'node',
-          });
-
-          const exported = require(outPath);
-
-          return exported.default || exported;
-        } catch (error) {
-          logger.error(
-            'Warning: TypeScript config file support is still experimental. Convert back to a JavaScript/JSON config file if you continue to have problems.',
-          );
-          throw error;
-        }
-      },
-    },
-    // don't support crawling up the folder tree:
-    stopDir: path.dirname(process.cwd()),
-  });
-
-  let result;
-  // if user specified --config path, load that
-  if (flags.config) {
-    result = explorerSync.load(path.resolve(process.cwd(), flags.config));
-    if (!result) {
-      handleConfigError(`Could not locate Snowpack config at ${flags.config}`);
-    }
+function loadConfig(filename: string): {filepath: string; config: SnowpackUserConfig} | null {
+  const loc = path.resolve(process.cwd(), filename);
+  if (!existsSync(loc)) {
+    return null;
   }
+  return {filepath: loc, config: NATIVE_REQUIRE(loc)};
+}
 
-  // If no config was found above, search for one.
-  result = result || explorerSync.search();
-
-  // If still no config found, assume none exists and use the default config.
-  if (!result || !result.config || result.isEmpty) {
-    result = {config: {...DEFAULT_CONFIG}};
-  }
+export async function loadConfigurationForCLI(
+  flags: CLIFlags,
+  pkgManifest: any,
+): Promise<SnowpackConfig> {
+  const result =
+    // if user specified --config path, load that
+    (flags.config && loadConfig(flags.config)) ||
+      // If no config was found above, search for one.
+      loadConfig('snowpack.config.mjs') ||
+      loadConfig('snowpack.config.cjs') ||
+      loadConfig('snowpack.config.js') ||
+      loadConfig('snowpack.config.json') || {filepath: undefined, config: {...DEFAULT_CONFIG}}; // If still no config found, assume none exists and use the default config.
 
   // validate against schema; throw helpful user if invalid
-  const config: SnowpackUserConfig = result.config;
-  valdiateDeprecatedConfig(config, flags);
+  const {config, filepath} = result;
+  valdiateDeprecatedConfig(result, flags);
   const cliConfig = expandCliFlags(flags);
 
   let extendConfig: SnowpackUserConfig = {} as SnowpackUserConfig;
   if (config.extends) {
     const extendConfigLoc = config.extends.startsWith('.')
-      ? path.resolve(path.dirname(result.filepath), config.extends)
+      ? path.resolve(path.dirname(process.cwd()), config.extends)
       : require.resolve(config.extends, {paths: [process.cwd()]});
-    const extendResult = explorerSync.load(extendConfigLoc);
+    const extendResult = loadConfig(extendConfigLoc);
     if (!extendResult) {
-      handleConfigError(`Could not locate Snowpack config at ${flags.config}`);
+      handleConfigError(`Could not locate "extends" config at ${flags.config}`);
       process.exit(1);
     }
-    extendConfig = extendResult.config;
     const extendValidation = validate(extendConfig, configSchema, {
       allowUnknownAttributes: false,
       propertyName: CONFIG_NAME,
     });
     if (extendValidation.errors && extendValidation.errors.length > 0) {
-      handleValidationErrors(result.filepath, extendValidation.errors);
+      handleValidationErrors(extendResult.filepath, extendValidation.errors);
       process.exit(1);
     }
     if (extendConfig.plugins) {
@@ -653,7 +622,7 @@ export function loadConfigurationForCLI(flags: CLIFlags, pkgManifest: any): Snow
 
   const [validationErrors, configResult] = createConfiguration(mergedConfig);
   if (validationErrors) {
-    handleValidationErrors(result.filepath, validationErrors);
+    handleValidationErrors(filepath!, validationErrors);
     process.exit(1);
   }
   return configResult!;

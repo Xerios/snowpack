@@ -1301,6 +1301,7 @@ export async function startDevServer(commandOptions: CommandOptions): Promise<Sn
     persistent: true,
     ignoreInitial: true,
     disableGlobbing: false,
+    useFsEvents: true,
   });
   watcher.on('add', (fileLoc) => {
     knownETags.clear();

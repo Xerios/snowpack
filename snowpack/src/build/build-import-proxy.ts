@@ -1,7 +1,7 @@
 import type {Postcss} from 'postcss';
 import path from 'path';
 import {SnowpackConfig} from '../types/snowpack';
-import {appendHtmlToHead, getExt, HMR_CLIENT_CODE, HMR_OVERLAY_CODE} from '../util';
+import {appendHtmlToHead, getExt, HMR_CLIENT_CODE, HMR_OVERLAY_CODE, NATIVE_REQUIRE} from '../util';
 import {logger} from '../logger';
 import {generateSRI} from './import-sri';
 
@@ -166,8 +166,8 @@ async function generateCssModuleImportProxy({
   hmr: boolean;
   config: SnowpackConfig;
 }) {
-  _postCss = _postCss || require('postcss');
-  _postCssModules = _postCssModules || require('postcss-modules');
+  _postCssModules = _postCssModules || NATIVE_REQUIRE('postcss-modules');
+  _postCss = _postCss || NATIVE_REQUIRE('postcss');
   let moduleJson: string | undefined;
   const processor = _postCss([
     _postCssModules({
